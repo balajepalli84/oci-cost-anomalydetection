@@ -1,0 +1,350 @@
+CREATE TABLE oci_cost_data (
+  AvailabilityZone VARCHAR2(100),
+  BilledCost NUMBER,
+  BillingAccountId NUMBER,
+  BillingAccountName NUMBER,
+  BillingCurrency VARCHAR2(20),
+  BillingPeriodEnd VARCHAR2(100),
+  BillingPeriodStart VARCHAR2(100),
+  ChargeCategory VARCHAR2(20),
+  ChargeDescription VARCHAR2(500),
+  ChargeFrequency VARCHAR2(50),
+  ChargePeriodEnd TIMESTAMP(6) WITH TIME ZONE,
+  ChargePeriodStart TIMESTAMP(6) WITH TIME ZONE,
+  ChargeSubcategory NUMBER,
+  CommitmentDiscountCategory NUMBER,
+  CommitmentDiscountId NUMBER,
+  CommitmentDiscountName NUMBER,
+  CommitmentDiscountType NUMBER,
+  EffectiveCost NUMBER,
+  InvoiceIssuer VARCHAR2(20),
+  ListCost NUMBER,
+  ListUnitPrice NUMBER,
+  PricingCategory NUMBER,
+  PricingQuantity NUMBER,
+  PricingUnit VARCHAR2(100),
+  Provider VARCHAR2(20),
+  Publisher VARCHAR2(20),
+  Region VARCHAR2(50),
+  ResourceId VARCHAR2(500),
+  ResourceName NUMBER,
+  ResourceType VARCHAR2(100),
+  ServiceCategory VARCHAR2(100),
+  ServiceName VARCHAR2(100),
+  SkuId VARCHAR2(20),
+  SkuPriceId NUMBER,
+  SubAccountId VARCHAR2(255),
+  SubAccountName VARCHAR2(20),
+  Tags VARCHAR2(4000),
+  UsageQuantity NUMBER,
+  UsageUnit VARCHAR2(100),
+  oci_ReferenceNumber VARCHAR2(500),
+  oci_CompartmentId VARCHAR2(255),
+  oci_CompartmentName VARCHAR2(100),
+  oci_OverageFlag VARCHAR2(20),
+  oci_UnitPriceOverage NUMBER,
+  oci_BilledQuantityOverage NUMBER,
+  oci_CostOverage NUMBER,
+  oci_AttributedUsage NUMBER,
+  oci_AttributedCost NUMBER,
+  oci_BackReferenceNumber NUMBER
+);
+
+BEGIN
+  DBMS_CLOUD.CREATE_CREDENTIAL(
+    credential_name => 'MY_OCI_CRED',
+    username        => 'ramesh.balajepalli@oracle.com',
+    password        => 'ZYyT{8GkbOX]>3GDTrIB'
+  );
+END;
+/
+--------------------------------------------
+SELECT column_name, data_type, data_length
+FROM USER_TAB_COLUMNS
+WHERE table_name = 'OCI_COST_DATA';
+
+
+---------------------------------------------
+BEGIN
+  DBMS_CLOUD_PIPELINE.STOP_PIPELINE(pipeline_name => 'LOAD_COST_DATA_PIPELINE_OCI');
+END;
+
+BEGIN
+  DBMS_CLOUD_PIPELINE.DROP_PIPELINE(pipeline_name => 'LOAD_COST_DATA_PIPELINE_OCI');
+END;
+
+BEGIN
+     DBMS_CLOUD_PIPELINE.CREATE_PIPELINE(
+        pipeline_name => 'LOAD_COST_DATA_PIPELINE_OCI',
+        pipeline_type => 'LOAD',
+        description   => 'Load cost from object store into a table'
+  );
+END;
+/
+BEGIN
+  DBMS_CLOUD_PIPELINE.SET_ATTRIBUTE(
+    pipeline_name => 'LOAD_COST_DATA_PIPELINE_OCI',
+    attributes    => JSON_OBJECT(
+      'credential_name' VALUE 'MY_OCI_CRED',
+      'location'        VALUE 'https://objectstorage.us-ashburn-1.oraclecloud.com/n/ociateam/b/cost_and_usage_reports/o/FOCUS Reports/',
+      'table_name'      VALUE 'OCI_COST_DATA',
+      'format'          VALUE '{
+         "type": "csv",
+         "delimiter": ",",
+         "skipheaders": 1,
+         "ignoreblanklines": true,
+         "blankasnull": true,
+         "trimspaces": "lrtrim",
+         "ignoremissingcolumns": "true",
+		 "dateformat": "Auto",
+		 "rejectlimit":10000000,
+		 "timestampformat": "YYYY-MM-DD\"T\"HH24:MI\"Z\"",
+		 "timestamptzformat": "YYYY-MM-DD\"T\"HH24:MI\"Z\"",
+         "columnpath": [
+           "$.AvailabilityZone",
+			"$.BilledCost",
+			"$.BillingAccountId",
+			"$.BillingAccountName",
+			"$.BillingCurrency",
+			"$.BillingPeriodEnd",
+			"$.BillingPeriodStart",
+			"$.ChargeCategory",
+			"$.ChargeDescription",
+			"$.ChargeFrequency",
+			"$.ChargePeriodEnd",
+			"$.ChargePeriodStart",
+			"$.ChargeSubcategory",
+			"$.CommitmentDiscountCategory",
+			"$.CommitmentDiscountId",
+			"$.CommitmentDiscountName",
+			"$.CommitmentDiscountType",
+			"$.EffectiveCost",
+			"$.InvoiceIssuer",
+			"$.ListCost",
+			"$.ListUnitPrice",
+			"$.PricingCategory",
+			"$.PricingQuantity",
+			"$.PricingUnit",
+			"$.Provider",
+			"$.Publisher",
+			"$.Region",
+			"$.ResourceId",
+			"$.ResourceName",
+			"$.ResourceType",
+			"$.ServiceCategory",
+			"$.ServiceName",
+			"$.SkuId",
+			"$.SkuPriceId",
+			"$.SubAccountId",
+			"$.SubAccountName",
+			"$.Tags",
+			"$.UsageQuantity",
+			"$.UsageUnit",
+			"$.oci_ReferenceNumber",
+			"$.oci_CompartmentId",
+			"$.oci_CompartmentName",
+			"$.oci_OverageFlag",
+			"$.oci_UnitPriceOverage",
+			"$.oci_BilledQuantityOverage",
+			"$.oci_CostOverage",
+			"$.oci_AttributedUsage",
+			"$.oci_AttributedCost",
+			"$.oci_BackReferenceNumber"
+         ]
+      }',
+      'priority' VALUE 'HIGH',
+      'interval' VALUE '20'
+    )
+  );
+END;
+
+
+/
+
+--
+BEGIN
+  DBMS_CLOUD_PIPELINE.START_PIPELINE(pipeline_name => 'LOAD_COST_DATA_PIPELINE_OCI');
+END;
+/
+
+
+SELECT * 
+FROM ALL_CLOUD_PIPELINE_LOGS
+WHERE PIPELINE_NAME = 'LOAD_COST_DATA_PIPELINE_OCI_2'
+ORDER BY TIMESTAMP DESC;
+
+SELECT * 
+FROM USER_CLOUD_PIPELINE_RUNS 
+WHERE PIPELINE_NAME = 'LOAD_COST_DATA_PIPELINE_OCI3' 
+ORDER BY START_TIME DESC;
+
+select * from DBA_CLOUD_PIPELINES 
+select * from DBA_CLOUD_PIPELINE_HISTORY  
+
+SELECT column_name, data_type, data_length
+FROM USER_TAB_COLUMNS
+WHERE table_name = 'YOUR_TABLE_NAME';
+
+select * from ADMIN.PIPELINE$28$32_STATUS 
+--------------------------------------------
+CREATE OR REPLACE VIEW COST_USAGE_TRAIN_V AS
+SELECT
+    ROWID AS RECORD_ID,
+    TO_NUMBER(NULLIF(UsageQuantity, '')) AS USAGE_QUANTITY,
+    TO_NUMBER(NULLIF(EffectiveCost, '')) AS EFFECTIVE_COST,
+    REGION,
+    RESOURCETYPE
+FROM cost_data
+WHERE TO_DATE(SUBSTR(ChargePeriodStart, 1, 10), 'YYYY-MM-DD') BETWEEN
+      ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -6) AND
+      ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1);
+
+**********************************************************
+CREATE OR REPLACE VIEW COST_USAGE_TRAIN_V AS
+SELECT
+    ROWID AS RECORD_ID,
+    "UsageQuantity" AS USAGE_QUANTITY,
+    "EffectiveCost" AS EFFECTIVE_COST,
+
+    -- Numeric mapping for Region
+    CASE "Region"
+        WHEN 'ap-hyderabad-1'   THEN 1
+        WHEN 'ap-melbourne-1'   THEN 2
+        WHEN 'ap-mumbai-1'      THEN 3
+        WHEN 'ap-singapore-1'   THEN 4
+        WHEN 'ap-sydney-1'      THEN 5
+        WHEN 'ap-tokyo-1'       THEN 6
+        WHEN 'ca-toronto-1'     THEN 7
+        WHEN 'eu-frankfurt-1'   THEN 8
+        WHEN 'eu-zurich-1'      THEN 9
+        WHEN 'me-abudhabi-1'    THEN 10
+        WHEN 'me-dubai-1'       THEN 11
+        WHEN 'sa-santiago-1'    THEN 12
+        WHEN 'sa-saopaulo-1'    THEN 13
+        WHEN 'uk-cardiff-1'     THEN 14
+        WHEN 'uk-london-1'      THEN 15
+        WHEN 'us-ashburn-1'     THEN 16
+        WHEN 'us-chicago-1'     THEN 17
+        WHEN 'us-phoenix-1'     THEN 18
+        WHEN 'us-sanjose-1'     THEN 19
+        ELSE 0
+    END AS REGION_ID,
+
+    -- Numeric mapping for ResourceType
+    CASE "ResourceType"
+        WHEN 'Storage'                    THEN 1
+        WHEN 'agcsgovernanceinstance'     THEN 2
+        WHEN 'alarm'                      THEN 3
+        WHEN 'analyticsinstance'          THEN 4
+        WHEN 'apigateway'                 THEN 5
+        WHEN 'bastion'                    THEN 6
+        WHEN 'blockvolume'                THEN 7
+        WHEN 'bootvolume'                 THEN 8
+        WHEN 'budget'                     THEN 9
+        WHEN 'cluster'                    THEN 10
+        WHEN 'cloudguardtarget'           THEN 11
+        WHEN 'computecapacityreport'      THEN 12
+        WHEN 'computeinstance'            THEN 13
+        WHEN 'controlcenterinstance'      THEN 14
+        WHEN 'costanalysis'               THEN 15
+        WHEN 'dashboard'                  THEN 16
+        WHEN 'database'                   THEN 17
+        WHEN 'datascienceinstance'        THEN 18
+        WHEN 'ddospolicy'                 THEN 19
+        WHEN 'devopsproject'              THEN 20
+        ELSE 0
+    END AS RESOURCETYPE_ID
+
+FROM OCI_COST_DATA
+WHERE "ChargePeriodStart" BETWEEN
+      ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -6)
+      AND ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1);
+--------------------------------------------
+CREATE OR REPLACE VIEW COST_USAGE_INFER_V AS
+SELECT
+    ROWID AS RECORD_ID,
+    TO_DATE(SUBSTR(ChargePeriodStart, 1, 10), 'YYYY-MM-DD') AS CHARGEPERIODSTART,
+    CASE
+        WHEN REGEXP_LIKE(UsageQuantity, '^\s*$') THEN NULL
+        ELSE TO_NUMBER(UsageQuantity)
+    END AS USAGE_QUANTITY,
+    CASE
+        WHEN REGEXP_LIKE(EffectiveCost, '^\s*$') THEN NULL
+        ELSE TO_NUMBER(EffectiveCost)
+    END AS EFFECTIVE_COST,
+    REGION,
+    RESOURCETYPE,
+    OCI_COMPARTMENTID,
+    OCI_COMPARTMENTNAME,
+    CHARGEDESCRIPTION,
+    RESOURCEID
+FROM cost_data
+WHERE TO_DATE(SUBSTR(ChargePeriodStart, 1, 10), 'YYYY-MM-DD') >= SYSDATE - 30;
+
+--------------------------------------------
+BEGIN
+  CTX_DDL.CREATE_POLICY('COST_TEXT_POLICY');
+END;
+--------------------------------
+CREATE OR REPLACE VIEW COST_USAGE_TRAIN_V_PREP AS
+SELECT
+    ROWID AS RECORD_ID,
+    TO_NUMBER(NULLIF(UsageQuantity, '')) AS USAGE_QUANTITY,
+    TO_NUMBER(NULLIF(EffectiveCost, '')) AS EFFECTIVE_COST,
+    REGION,
+    RESOURCETYPE
+FROM cost_data
+WHERE TO_DATE(SUBSTR(ChargePeriodStart, 1, 10), 'YYYY-MM-DD') BETWEEN
+      ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -6) AND
+      ADD_MONTHS(TRUNC(SYSDATE, 'MM'), -1);
+**********************************************
+SELECT * FROM TABLE(DBMS_DATA_MINING.APPLY('COST_ANOMALY_MODEL', 'SELECT * FROM COST_USAGE_INFER_V'));
+
+--------------------------------------------
+DECLARE
+  v_settings DBMS_DATA_MINING.SETTING_LIST;
+BEGIN
+  v_settings('ALGO_NAME') := 'ALGO_EXPECTATION_MAXIMIZATION';
+  v_settings('PREP_AUTO') := 'ON';
+  v_settings('EMCS_OUTLIER_RATE') := '0.2';  -- Flag top 20% as anomalies
+  v_settings(dbms_data_mining.odms_text_policy_name)  := 'COST_TEXT_POLICY';
+
+  DBMS_DATA_MINING.CREATE_MODEL2(
+    MODEL_NAME          => 'COST_ANOMALY_MODEL',
+    MINING_FUNCTION     => 'CLASSIFICATION',   -- Required for EM-based anomaly detection
+    DATA_QUERY          => 'SELECT * FROM COST_USAGE_TRAIN_V',
+    CASE_ID_COLUMN_NAME => 'RECORD_ID',
+    SET_LIST            => v_settings,
+    TARGET_COLUMN_NAME  => NULL                -- NULL = unsupervised
+  );
+END;
+
+--------------------------------------------
+Not Tested - (get all records)
+SELECT
+    t.*,
+    PREDICTION_PROBABILITY(COST_ANOMALY_MODEL USING *) AS OUTLIER_PROBABILITY,
+    PREDICTION(COST_ANOMALY_MODEL USING *) AS CLUSTER
+FROM COST_USAGE_INFER_V t
+WHERE PREDICTION_PROBABILITY(COST_ANOMALY_MODEL USING *) > 0.8
+ORDER BY OUTLIER_PROBABILITY DESC;
+
+--------------------------------------------
+SELECT
+    t.OCI_COMPARTMENTNAME,
+    t.RESOURCENAME,
+    t.REGION,
+    t.CHARGEDESCRIPTION,
+    SUM(TO_NUMBER(NULLIF(t.UsageQuantity, ''))) AS TOTAL_USAGE_QUANTITY,
+    SUM(TO_NUMBER(NULLIF(t.EffectiveCost, ''))) AS TOTAL_EFFECTIVE_COST,
+    COUNT(*) AS ANOMALY_COUNT
+FROM COST_USAGE_INFER_V t
+WHERE PREDICTION_PROBABILITY(COST_ANOMALY_MODEL USING *) > 0.8
+GROUP BY
+    t.OCI_COMPARTMENTNAME,
+    t.RESOURCENAME,
+    t.REGION,
+    t.CHARGEDESCRIPTION
+ORDER BY
+    TOTAL_EFFECTIVE_COST DESC;
+
